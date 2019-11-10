@@ -66,5 +66,15 @@ namespace Octree_reduction
             reduced.UpdateBitmap(originalSizeBitmapReducedAfter);
             DrawToPictureBoxes();
         }
+
+        private void openToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = "jpg files (*.jpg)|*.jpg|png files (*.png)|*.png|All files (*.*)|*.*";
+            if(ofd.ShowDialog() == DialogResult.OK)
+            {
+                LoadBitmap(ofd.FileName);
+            }
+        }
     }
 }

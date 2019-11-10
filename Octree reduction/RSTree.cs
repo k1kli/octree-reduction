@@ -35,14 +35,16 @@ namespace Octree_reduction
                 if (children[child] != null) throw new Exception("Child already present");
                 children[child] = new OctNode(Tree, this.depth + 1);
                 ChildrenCount++;
-                Tree.LeavesCount++;
+                if (ChildrenCount > 1)
+                    Tree.LeavesCount++;
             }
             public void RemoveChild(int child)
             {
                 if (children[child] == null || !children[child].Leaf) throw new Exception("Cant remove this child");
                 children[child] = null;
                 ChildrenCount--;
-                Tree.LeavesCount--;
+                if(ChildrenCount > 0)
+                    Tree.LeavesCount--;
             }
 
             public OctNode GetCopy(Octree copyTree)
@@ -58,7 +60,7 @@ namespace Octree_reduction
             }
         }
         public OctNode root;
-        public int LeavesCount { get; private set; }
+        public int LeavesCount { get; private set; } = 1;
         public Octree()
         {
             root = new OctNode(this, 0);
