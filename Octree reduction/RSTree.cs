@@ -17,6 +17,7 @@ namespace Octree_reduction
             public OctNode[] children;
             public int ChildrenCount { get; private set; }
             public bool Leaf => ChildrenCount == 0;
+            public bool LowestLevel => depth == 8;
             public int Branch(Color color)
             {
                 return ((color.R >> (7 - depth)) & 1) * 4
@@ -62,6 +63,41 @@ namespace Octree_reduction
         {
             root = new OctNode(this, 0);
         }
+        public void LoadBitmap(DirectBitmap bitmap)
+        {
+            for(int i = 0; i < bitmap.Bits.Length; i++)
+            {
+                InsertColor(Color.FromArgb(bitmap.Bits[i]));
+            }
+        }
+        public void UpdateBitmap(DirectBitmap bitmap)
+        {
+            for (int i = 0; i < bitmap.Bits.Length; i++)
+            {
+                bitmap.Bits[i] = GetReducedColor(Color.FromArgb(bitmap.Bits[i])).ToArgb();
+            }
+        }
+
+        private Color GetReducedColor(Color color)
+        {
+            OctNode node = root;
+            int r = 0;
+            int g = 0;
+            int b = 0;
+            int k = 7;
+            while(true)
+            {
+                int branch = node.Branch(color);
+                if (node.children[branch] == null) break;
+                node = node.children[branch];
+                r |= ((branch >> 2) & 1) << k;
+                g |= ((branch >> 1) & 1) << k;
+                b |= ((branch >> 0) & 1) << k;
+                k--;
+            }
+            return Color.FromArgb(r,g,b);
+        }
+
         public void InsertColor(Color color)
         {
             InsertColor(root, color);
@@ -75,7 +111,7 @@ namespace Octree_reduction
         }
         public void InsertColor(OctNode node, Color color)
         {
-            if(node.Leaf)
+            if(node.LowestLevel)
             {
                 node.PixelCount++;
             }
@@ -94,14 +130,16 @@ namespace Octree_reduction
                 Reduce(root, resultingLeavesCount, i);
             }
         }
-        private static readonly int[] indexes = { 0, 1, 2, 3, 4, 5, 6, 7 };
         private void Reduce(OctNode node, int resultingLeavesCount, int atLevel)
         {
-            Array.Sort(indexes, (int i1, int i2) =>
-            node.children[i1] == null ? 1
-            : node.children[i2] == null ? -1
-            : node.children[i1].PixelCount.CompareTo(node.children[i2].PixelCount));
-            for(int i = 0; i < 8 && node.children[indexes[i]] != null && resultingLeavesCount > LeavesCount; i++)
+            List<int> indexes = new List<int>();
+            for (int i = 0; i < 8; i++)
+            {
+                if (node.children[i] != null) indexes.Add(i);
+            }
+            indexes.Sort((int i1, int i2) =>
+            node.children[i1].PixelCount.CompareTo(node.children[i2].PixelCount));
+            for(int i = 0; i < indexes.Count && resultingLeavesCount < LeavesCount; i++)
             {
                 if(atLevel - 1 == node.depth)
                 {

@@ -27,6 +27,19 @@ namespace Octree_reduction
             BitsHandle = GCHandle.Alloc(Bits, GCHandleType.Pinned);
             Bitmap = new Bitmap(width, height, width * 4, PixelFormat.Format32bppPArgb, BitsHandle.AddrOfPinnedObject());
         }
+        public DirectBitmap(Bitmap original): this(original.Width, original.Height)
+        {
+            Graphics g = Graphics.FromImage(Bitmap);
+            g.DrawImage(original, 0, 0, Width, Height);
+            g.Dispose();
+        }
+
+        public void DrawOther(DirectBitmap other)
+        {
+            Graphics g = Graphics.FromImage(Bitmap);
+            g.DrawImage(other.Bitmap, 0, 0, Width, Height);
+            g.Dispose();
+        }
 
         public void SetPixel(int x, int y, Color colour)
         {
@@ -44,6 +57,7 @@ namespace Octree_reduction
 
             return result;
         }
+
 
         public void Dispose()
         {
