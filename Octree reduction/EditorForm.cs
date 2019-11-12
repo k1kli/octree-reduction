@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -58,13 +59,9 @@ namespace Octree_reduction
 
         private void reduceButton_Click(object sender, EventArgs e)
         {
-            var beforeReduction = new Octree();
-            beforeReduction.LoadBitmap(originalSizeBitmap);
-            var reduced = beforeReduction.GetCopy();
-            reduced.Reduce(1 << colorNumberTrackBar.Value);
-            originalSizeBitmapReducedAfter.DrawOther(originalSizeBitmap);
-            reduced.UpdateBitmap(originalSizeBitmapReducedAfter);
-            DrawToPictureBoxes();
+            reduceAfterProgressBar.Value = 0;
+            reduceAfterProgressBar.Maximum = originalSizeBitmap.Bits.Length;
+            backgroundWorker1.RunWorkerAsync(1 << colorNumberTrackBar.Value);
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -76,5 +73,78 @@ namespace Octree_reduction
                 LoadBitmap(ofd.FileName);
             }
         }
+
+        private void saveAsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Filter = "jpg files (*.jpg)|*.jpg|png files(*.png) | *.png";
+            if (sfd.ShowDialog() == DialogResult.OK)
+            {
+                var format =
+                    sfd.FilterIndex == 0 ?
+                    System.Drawing.Imaging.ImageFormat.Jpeg :
+                    System.Drawing.Imaging.ImageFormat.Png;
+                using (var stream = sfd.OpenFile())
+                    originalSizeBitmapReducedAfter.Bitmap.Save(stream, format);
+            }
+        }
+
+        private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker worker = sender as BackgroundWorker;
+
+            var tree = new Octree();
+            var progressReport = new ProgressReporter(reduceAfterProgressBar);
+            progressReport.StartReporting();
+            tree.LoadBitmap(originalSizeBitmap, progressReport);
+            tree.Reduce((int)e.Argument);
+            originalSizeBitmapReducedAfter.DrawOther(originalSizeBitmap);
+            tree.UpdateBitmap(originalSizeBitmapReducedAfter);
+            progressReport.StopReporting();
+            this.Invoke((Action)delegate { DrawToPictureBoxes(); });
+        }
+
+        private void backgroundWorker1_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            reduceAfterProgressBar.Increment(1);
+        }
     }
 }
+class ProgressReporter : Progress<int>
+{
+    CancellationTokenSource tokenSource = new CancellationTokenSource();
+    int k = 0;
+    ProgressBar progressBar;
+    Task reportingTask;
+    public ProgressReporter(ProgressBar progressBar)
+    {
+        this.progressBar = progressBar;
+    }
+    protected override void OnReport(int value)
+    {
+        base.OnReport(value);
+        Interlocked.Increment(ref k);
+    }
+    public void StartReporting()
+    {
+        CancellationToken ct = tokenSource.Token;
+        reportingTask = new Task(UpdateBar, tokenSource.Token);
+        reportingTask.Start();
+    }
+    public void StopReporting()
+    {
+        tokenSource.Cancel();
+    }
+    private void UpdateBar()
+    {
+        while(!tokenSource.Token.IsCancellationRequested)
+        {
+            progressBar.Invoke((Action)delegate
+            {
+                progressBar.Value = k;
+            });
+            if (tokenSource.Token.IsCancellationRequested) break;
+            Thread.Sleep(50);
+        }
+    }
+};
