@@ -17,6 +17,8 @@ namespace Octree_reduction
         private DirectBitmap forOriginalPictureBox;
         private DirectBitmap originalSizeBitmapReducedAfter;
         private DirectBitmap forReduceAfterPictureBox;
+        private DirectBitmap originalSizeBitmapReducedAlong;
+        private DirectBitmap forReduceAlongPictureBox;
         public EditorForm()
         {
             InitializeComponent();
@@ -29,26 +31,34 @@ namespace Octree_reduction
             if (originalSizeBitmap != null)
             {
                 originalSizeBitmap.Dispose();
-            originalSizeBitmapReducedAfter.Dispose();
+                originalSizeBitmapReducedAfter.Dispose();
+                originalSizeBitmapReducedAlong.Dispose();
             }
             originalSizeBitmap = new DirectBitmap(bitmap);
             originalSizeBitmapReducedAfter = new DirectBitmap(bitmap);
+            originalSizeBitmapReducedAlong = new DirectBitmap(bitmap);
             if (forOriginalPictureBox == null)
                 forOriginalPictureBox
                 = new DirectBitmap(originalPictureBox.Width, originalPictureBox.Height);
             if (forReduceAfterPictureBox == null)
                 forReduceAfterPictureBox
                 = new DirectBitmap(reduceAfterPictureBox.Width, reduceAfterPictureBox.Height);
+            if (forReduceAlongPictureBox == null)
+                forReduceAlongPictureBox
+                = new DirectBitmap(reduceAlongPictureBox.Width, reduceAlongPictureBox.Height);
             DrawToPictureBoxes();
         }
         public void DrawToPictureBoxes()
         {
             forOriginalPictureBox.DrawOther(originalSizeBitmap);
             forReduceAfterPictureBox.DrawOther(originalSizeBitmapReducedAfter);
+            forReduceAlongPictureBox.DrawOther(originalSizeBitmapReducedAlong);
             originalPictureBox.Image = forOriginalPictureBox.Bitmap;
             originalPictureBox.Refresh();
             reduceAfterPictureBox.Image = forReduceAfterPictureBox.Bitmap;
             reduceAfterPictureBox.Refresh();
+            reduceAlongPictureBox.Image = forReduceAlongPictureBox.Bitmap;
+            reduceAlongPictureBox.Refresh();
 
         }
 
@@ -61,6 +71,8 @@ namespace Octree_reduction
         {
             reduceAfterProgressBar.Value = 0;
             reduceAfterProgressBar.Maximum = originalSizeBitmap.Bits.Length;
+            reduceAlongProgressBar.Value = 0;
+            reduceAlongProgressBar.Maximum = originalSizeBitmap.Bits.Length;
             backgroundWorker1.RunWorkerAsync(1 << colorNumberTrackBar.Value);
         }
 
@@ -68,7 +80,7 @@ namespace Octree_reduction
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Filter = "jpg files (*.jpg)|*.jpg|png files (*.png)|*.png|All files (*.*)|*.*";
-            if(ofd.ShowDialog() == DialogResult.OK)
+            if (ofd.ShowDialog() == DialogResult.OK)
             {
                 LoadBitmap(ofd.FileName);
             }
@@ -91,23 +103,34 @@ namespace Octree_reduction
 
         private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
         {
-            BackgroundWorker worker = sender as BackgroundWorker;
+            ReduceAfter((int)e.Argument);
+            ReduceAlong((int)e.Argument);
 
+        }
+        private void ReduceAfter(int resultingLeavesCount)
+        {
             var tree = new Octree();
             var progressReport = new ProgressReporter(reduceAfterProgressBar);
             progressReport.StartReporting();
             tree.LoadBitmap(originalSizeBitmap, progressReport);
-            tree.Reduce((int)e.Argument);
+            tree.Reduce(resultingLeavesCount);
             originalSizeBitmapReducedAfter.DrawOther(originalSizeBitmap);
             tree.UpdateBitmap(originalSizeBitmapReducedAfter);
             progressReport.StopReporting();
             this.Invoke((Action)delegate { DrawToPictureBoxes(); });
         }
-
-        private void backgroundWorker1_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        private void ReduceAlong(int resultingLeavesCount)
         {
-            reduceAfterProgressBar.Increment(1);
+            var tree = new Octree();
+            var progressReport = new ProgressReporter(reduceAlongProgressBar);
+            progressReport.StartReporting();
+            tree.LoadBitmapReduceAlong(originalSizeBitmap, progressReport, resultingLeavesCount);
+            originalSizeBitmapReducedAlong.DrawOther(originalSizeBitmap);
+            tree.UpdateBitmap(originalSizeBitmapReducedAlong);
+            progressReport.StopReporting();
+            this.Invoke((Action)delegate { DrawToPictureBoxes(); });
         }
+
     }
 }
 class ProgressReporter : Progress<int>
@@ -137,7 +160,7 @@ class ProgressReporter : Progress<int>
     }
     private void UpdateBar()
     {
-        while(!tokenSource.Token.IsCancellationRequested)
+        while (!tokenSource.Token.IsCancellationRequested)
         {
             progressBar.Invoke((Action)delegate
             {

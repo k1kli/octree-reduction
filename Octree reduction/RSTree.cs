@@ -57,20 +57,10 @@ namespace Octree_reduction
                     Tree.LeavesCount--;
             }
 
-            public OctNode GetCopy(Octree copyTree)
-            {
-                OctNode res = new OctNode(copyTree, this.depth);
-                res.PixelCount = PixelCount;
-                res.ChildrenCount = ChildrenCount;
-                for (int i = 0; i < 8; i++)
-                {
-                    res.children[i] = children[i]?.GetCopy(copyTree);
-                }
-                return res;
-            }
         }
         public OctNode root;
         private int leavesCount = 1;
+        int lowestLevel = 0;
         public int LeavesCount { get => leavesCount; private set => leavesCount = value; }
         public Octree()
         {
@@ -83,15 +73,19 @@ namespace Octree_reduction
                 Parallel.ForEach(bitmap.Bits, color =>
                        {
                            InsertColor(color);
-                        progressReport.Report(1);
-                    });
-
-                //Parallel.For(0, bitmap.Bits.Length, i => InsertColor(bitmap.Bits[i]));
-                //for (int i = 0; i < bitmap.Bits.Length; i++)
-                //{
-                //    InsertColor(bitmap.Bits[i]);
-                //}
-
+                           progressReport.Report(1);
+                       });
+            }
+        }
+        public void LoadBitmapReduceAlong(DirectBitmap bitmap,
+                                          IProgress<int> progressReport,
+                                          int resultingLeavesCount)
+        {
+            foreach (int color in bitmap.Bits)
+            {
+                InsertColorWithReducing(color);
+                Reduce(resultingLeavesCount);
+                progressReport.Report(1);
             }
         }
         public void UpdateBitmap(DirectBitmap bitmap)
@@ -127,12 +121,9 @@ namespace Octree_reduction
         {
             InsertColor(root, color);
         }
-        public Octree GetCopy()
+        public void InsertColorWithReducing(int color)
         {
-            Octree res = new Octree();
-            res.root = root.GetCopy(res);
-            res.LeavesCount = LeavesCount;
-            return res;
+            InsertColorWithReducing(root, color);
         }
         public void InsertColor(OctNode node, int color)
         {
@@ -143,7 +134,7 @@ namespace Octree_reduction
             else
             {
                 int next = node.Branch(color);
-                if(node.children[next] == null)
+                if (node.children[next] == null)
                 {
                     lock (node.children)
                     {
@@ -154,9 +145,25 @@ namespace Octree_reduction
                 InsertColor(node.children[next], color);
             }
         }
+        public void InsertColorWithReducing(OctNode node, int color)
+        {
+            if (node.LowestLevel)
+            {
+                node.PixelCount++;
+            }
+            else
+            {
+                int next = node.Branch(color);
+                if (node.children[next] == null)
+                {
+                    node.InitChild(next);
+                }
+                InsertColorWithReducing(node.children[next], color);
+            }
+        }
         public void Reduce(int resultingLeavesCount)
         {
-            for (int i = 8; i > 0; i--)
+            for (int i = 8; i > 0 && resultingLeavesCount < LeavesCount; i--)
             {
                 Reduce(root, resultingLeavesCount, i);
             }
