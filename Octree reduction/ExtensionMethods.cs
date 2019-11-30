@@ -14,39 +14,46 @@ namespace Octree_reduction
             LinkedList<T> greater = new LinkedList<T>();
             LinkedList<T> smaller = new LinkedList<T>();
             LinkedList<T> equal = new LinkedList<T>();
-            equal.AddLast(sortedList.First());
+            var node = sortedList.First;
             sortedList.RemoveFirst();
+            equal.AddLast(node);
             while (sortedList.Count > 0)
             {
-                T element = sortedList.First();
+                node = sortedList.First;
                 sortedList.RemoveFirst();
-                int comparisionResult = comparision.Invoke(element, equal.First());
+                int comparisionResult = comparision.Invoke(node.Value, equal.First());
                 if (comparisionResult > 0)
                 {
-                    greater.AddLast(element);
+                    greater.AddLast(node);
                 }
                 else if (comparisionResult == 0)
                 {
-                    equal.AddLast(element);
+                    equal.AddLast(node);
                 }
                 else
                 {
-                    smaller.AddLast(element);
+                    smaller.AddLast(node);
                 }
             }
             greater.Sort(comparision);
             smaller.Sort(comparision);
-            foreach (T el in smaller)
+            while (smaller.First != null)
             {
-                sortedList.AddLast(el);
+                node = smaller.First;
+                smaller.RemoveFirst();
+                sortedList.AddLast(node);
             }
-            foreach (T el in equal)
+            while (equal.First != null)
             {
-                sortedList.AddLast(el);
+                node = equal.First;
+                equal.RemoveFirst();
+                sortedList.AddLast(node);
             }
-            foreach (T el in greater)
+            while (greater.First != null)
             {
-                sortedList.AddLast(el);
+                node = greater.First;
+                greater.RemoveFirst();
+                sortedList.AddLast(node);
             }
         }
     }

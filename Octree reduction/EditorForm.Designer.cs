@@ -37,7 +37,6 @@
             this.reduceAlongProgressBar = new System.Windows.Forms.ProgressBar();
             this.colorNumberTrackBar = new System.Windows.Forms.TrackBar();
             this.reduceButton = new System.Windows.Forms.Button();
-            this.grayscaleButton = new System.Windows.Forms.Button();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -118,12 +117,15 @@
             // colorNumberTrackBar
             // 
             this.colorNumberTrackBar.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.colorNumberTrackBar.LargeChange = 20;
             this.colorNumberTrackBar.Location = new System.Drawing.Point(13, 466);
-            this.colorNumberTrackBar.Maximum = 100;
+            this.colorNumberTrackBar.Maximum = 400;
             this.colorNumberTrackBar.Minimum = 1;
             this.colorNumberTrackBar.Name = "colorNumberTrackBar";
             this.colorNumberTrackBar.Size = new System.Drawing.Size(680, 56);
+            this.colorNumberTrackBar.SmallChange = 4;
             this.colorNumberTrackBar.TabIndex = 7;
+            this.colorNumberTrackBar.TickFrequency = 4;
             this.colorNumberTrackBar.Value = 16;
             this.colorNumberTrackBar.Scroll += new System.EventHandler(this.colorNumberTrackBar_Scroll);
             // 
@@ -137,16 +139,6 @@
             this.reduceButton.Text = "Reduce to 16 Colors";
             this.reduceButton.UseVisualStyleBackColor = true;
             this.reduceButton.Click += new System.EventHandler(this.reduceButton_Click);
-            // 
-            // grayscaleButton
-            // 
-            this.grayscaleButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.grayscaleButton.Location = new System.Drawing.Point(286, 575);
-            this.grayscaleButton.Name = "grayscaleButton";
-            this.grayscaleButton.Size = new System.Drawing.Size(132, 41);
-            this.grayscaleButton.TabIndex = 9;
-            this.grayscaleButton.Text = "To grayscale";
-            this.grayscaleButton.UseVisualStyleBackColor = true;
             // 
             // menuStrip1
             // 
@@ -191,7 +183,6 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1172, 636);
-            this.Controls.Add(this.grayscaleButton);
             this.Controls.Add(this.reduceButton);
             this.Controls.Add(this.colorNumberTrackBar);
             this.Controls.Add(this.reduceAlongProgressBar);
@@ -230,7 +221,6 @@
         private System.Windows.Forms.ProgressBar reduceAlongProgressBar;
         private System.Windows.Forms.TrackBar colorNumberTrackBar;
         private System.Windows.Forms.Button reduceButton;
-        private System.Windows.Forms.Button grayscaleButton;
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;

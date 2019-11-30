@@ -15,9 +15,10 @@ namespace Octree_reduction
         {
             public Octree Tree;
             public int PixelCount;
+            public int ChildrenPixelCount;
             public int depth;
             public int color;
-            public OctNode[] children;
+            public LinkedListNode<OctNode>[] children;
             public int ChildrenCount { get; private set; }
             public bool Leaf => ChildrenCount == 0;
             public bool LowestLevel => depth == 8;
@@ -39,49 +40,49 @@ namespace Octree_reduction
             {
                 this.Tree = tree;
                 this.depth = depth;
-                children = new OctNode[8];
+                children = new LinkedListNode<OctNode>[8];
             }
-            public OctNode InitChild(int child)
+            public void InitChild(int child)
             {
                 if (children[child] != null) throw new Exception("Child already present");
-                children[child] = new OctNode(Tree, this.depth + 1);
+                children[child] = Tree.levels[depth+1].AddLast(new OctNode(Tree, this.depth + 1));
                 ChildrenCount++;
                 if (ChildrenCount > 1)
                     Tree.LeavesCount++;
-                return children[child];
             }
             public void RemoveChild(int child)
             {
-                if (children[child] == null || !children[child].Leaf)
+                if (children[child] == null || !children[child].Value.Leaf)
                     throw new Exception("Cant remove this child");
+                children[child].List.Remove(children[child]);
                 children[child] = null;
                 ChildrenCount--;
                 if (ChildrenCount > 0)
                     Tree.LeavesCount--;
             }
 
-            public void GetColorAndPixelCountFromChildren()
+            public void UpdateColorAndPixelCountFromChildren()
             {
-                long totalPixelCount=0;
-                long red = 0;
-                long green = 0;
-                long blue = 0;
+                long red = ((color >> 16) & 255)*PixelCount;
+                long green = ((color >> 8) & 255) * PixelCount;
+                long blue = (color & 255) * PixelCount;
                 for(int i = 0; i < 8; i++)
                 {
                     if(children[i] != null)
                     {
-                        red += (long)((children[i].color >> 16) & 255)
-                            * children[i].PixelCount;
-                        green += (long)((children[i].color >> 8) & 255)
-                            * children[i].PixelCount;
-                        blue += (long)(children[i].color & 255)
-                            * children[i].PixelCount;
-                        totalPixelCount += children[i].PixelCount;
+                        red += (long)((children[i].Value.color >> 16) & 255)
+                            * children[i].Value.PixelCount;
+                        green += (long)((children[i].Value.color >> 8) & 255)
+                            * children[i].Value.PixelCount;
+                        blue += (long)(children[i].Value.color & 255)
+                            * children[i].Value.PixelCount;
                     }
                 }
-                red /= totalPixelCount;
-                green /= totalPixelCount;
-                blue /= totalPixelCount;
+                PixelCount += ChildrenPixelCount;
+                ChildrenPixelCount = 0;
+                red /= PixelCount;
+                green /= PixelCount;
+                blue /= PixelCount;
                 color = 255;
                 color <<= 8;
                 color |= ((int)red & 255);
@@ -89,7 +90,6 @@ namespace Octree_reduction
                 color |= ((int)green & 255);
                 color <<= 8;
                 color |= ((int)blue & 255);
-                PixelCount = (int)totalPixelCount;
             }
         }
         LinkedList<OctNode>[] levels;
@@ -107,7 +107,7 @@ namespace Octree_reduction
         }
         public void LoadBitmap(DirectBitmap bitmap, IProgress<int> progressReport)
         {
-                foreach (var color in bitmap.Bits)
+                foreach (int color in bitmap.Bits)
                 {
                     InsertColor(color);
                     progressReport.Report(1);
@@ -119,7 +119,7 @@ namespace Octree_reduction
         {
             foreach (int color in bitmap.Bits)
             {
-                InsertColorWithReducing(color);
+                InsertColor(color);
                 Reduce(resultingLeavesCount);
                 progressReport.Report(1);
             }
@@ -139,7 +139,7 @@ namespace Octree_reduction
             {
                 int branch = node.Branch(color);
                 if (node.children[branch] == null) break;
-                node = node.children[branch];
+                node = node.children[branch].Value;
             }
             return node.color;
         }
@@ -148,31 +148,11 @@ namespace Octree_reduction
         {
             InsertColor(root, color);
         }
-        public void InsertColorWithReducing(int color)
-        {
-            InsertColorWithReducing(root, color);
-        }
         public void InsertColor(OctNode node, int color)
         {
             if (node.LowestLevel)
             {
-                node.PixelCount++;
                 node.color = color;
-            }
-            else
-            {
-                int next = node.Branch(color);
-                if (node.children[next] == null)
-                {
-                    levels[node.depth+1].AddLast(node.InitChild(next));
-                }
-                InsertColor(node.children[next], color);
-            }
-        }
-        public void InsertColorWithReducing(OctNode node, int color)
-        {
-            if (node.LowestLevel)
-            {
                 node.PixelCount++;
             }
             else
@@ -182,7 +162,8 @@ namespace Octree_reduction
                 {
                     node.InitChild(next);
                 }
-                InsertColorWithReducing(node.children[next], color);
+                node.ChildrenPixelCount++;
+                InsertColor(node.children[next].Value, color);
             }
         }
         public void Reduce(int resultingLeavesCount)
@@ -194,20 +175,18 @@ namespace Octree_reduction
         }
         private void ReduceLevel(int resultingLeavesCount, int atLevel)
         {
-            //foreach(var octnode in levels[atLevel-1])
-            //{
-            //    octnode.SetColorAsAverageOfChildren();
-            //}
-            Parallel.ForEach(levels[atLevel - 1], (octNode) =>
-               {
-                   octNode.GetColorAndPixelCountFromChildren();
-               });
-            levels[atLevel-1].Sort((octNode1, octNode2) => octNode1.PixelCount.CompareTo(octNode2.PixelCount));
+            //Parallel.ForEach(levels[atLevel - 1], (octNode) =>
+            //   {
+            //       octNode.GetColorAndPixelCountFromChildren();
+            //   });
+            if(levels[atLevel-1].Count > 1)
+                levels[atLevel-1].Sort((octNode1, octNode2) => octNode1.PixelCount.CompareTo(octNode2.PixelCount));
             var node = levels[atLevel-1].First;
             while(node != null && resultingLeavesCount < LeavesCount)
             {
-                
-                for(int i = 0; i < 8;i++)
+
+                node.Value.UpdateColorAndPixelCountFromChildren();
+                for (int i = 0; i < 8;i++)
                 {
                     if(node.Value.children[i] != null)
                     {

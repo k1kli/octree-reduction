@@ -73,8 +73,8 @@ namespace Octree_reduction
             reduceAfterProgressBar.Maximum = originalSizeBitmap.Bits.Length;
             reduceAlongProgressBar.Value = 0;
             reduceAlongProgressBar.Maximum = originalSizeBitmap.Bits.Length;
-            ReduceAfter(colorNumberTrackBar.Value);
-            //backgroundWorker1.RunWorkerAsync(colorNumberTrackBar.Value);
+           
+            backgroundWorker1.RunWorkerAsync(colorNumberTrackBar.Value);
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -105,7 +105,7 @@ namespace Octree_reduction
         private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
         {
             ReduceAfter((int)e.Argument);
-            //ReduceAlong((int)e.Argument);
+            ReduceAlong((int)e.Argument);
 
         }
         private void ReduceAfter(int resultingLeavesCount)
@@ -158,6 +158,7 @@ class ProgressReporter : Progress<int>
     public void StopReporting()
     {
         tokenSource.Cancel();
+        progressBar.Value = progressBar.Maximum;
     }
     private void UpdateBar()
     {
