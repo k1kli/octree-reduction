@@ -180,7 +180,8 @@ namespace Octree_reduction
             //       octNode.GetColorAndPixelCountFromChildren();
             //   });
             if(levels[atLevel-1].Count > 1)
-                levels[atLevel-1].Sort((octNode1, octNode2) => octNode1.PixelCount.CompareTo(octNode2.PixelCount));
+                levels[atLevel-1].Sort((octNode1, octNode2) => (octNode1.PixelCount+octNode1.ChildrenPixelCount)
+                .CompareTo(octNode2.PixelCount + octNode2.ChildrenPixelCount));
             var node = levels[atLevel-1].First;
             while(node != null && resultingLeavesCount < LeavesCount)
             {
