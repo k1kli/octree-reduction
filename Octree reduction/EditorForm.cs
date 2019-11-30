@@ -64,7 +64,7 @@ namespace Octree_reduction
 
         private void colorNumberTrackBar_Scroll(object sender, EventArgs e)
         {
-            reduceButton.Text = $"Reduce to {1 << colorNumberTrackBar.Value} colors";
+            reduceButton.Text = $"Reduce to {colorNumberTrackBar.Value} colors";
         }
 
         private void reduceButton_Click(object sender, EventArgs e)
@@ -73,7 +73,8 @@ namespace Octree_reduction
             reduceAfterProgressBar.Maximum = originalSizeBitmap.Bits.Length;
             reduceAlongProgressBar.Value = 0;
             reduceAlongProgressBar.Maximum = originalSizeBitmap.Bits.Length;
-            backgroundWorker1.RunWorkerAsync(1 << colorNumberTrackBar.Value);
+            ReduceAfter(colorNumberTrackBar.Value);
+            //backgroundWorker1.RunWorkerAsync(colorNumberTrackBar.Value);
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -104,7 +105,7 @@ namespace Octree_reduction
         private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
         {
             ReduceAfter((int)e.Argument);
-            ReduceAlong((int)e.Argument);
+            //ReduceAlong((int)e.Argument);
 
         }
         private void ReduceAfter(int resultingLeavesCount)

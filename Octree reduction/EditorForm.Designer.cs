@@ -119,11 +119,12 @@
             // 
             this.colorNumberTrackBar.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.colorNumberTrackBar.Location = new System.Drawing.Point(13, 466);
-            this.colorNumberTrackBar.Maximum = 24;
+            this.colorNumberTrackBar.Maximum = 100;
+            this.colorNumberTrackBar.Minimum = 1;
             this.colorNumberTrackBar.Name = "colorNumberTrackBar";
             this.colorNumberTrackBar.Size = new System.Drawing.Size(680, 56);
             this.colorNumberTrackBar.TabIndex = 7;
-            this.colorNumberTrackBar.Value = 4;
+            this.colorNumberTrackBar.Value = 16;
             this.colorNumberTrackBar.Scroll += new System.EventHandler(this.colorNumberTrackBar_Scroll);
             // 
             // reduceButton
