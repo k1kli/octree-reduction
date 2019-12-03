@@ -23,6 +23,12 @@ namespace Octree_reduction
         {
             InitializeComponent();
             LoadBitmap("..\\..\\Data\\Bitmap.jpg");
+            backgroundWorker1.WorkerReportsProgress = true;
+            backgroundWorker2.WorkerReportsProgress = true;
+            backgroundWorker1.RunWorkerCompleted += BackgroundWorker1_RunWorkerCompleted;
+            backgroundWorker1.ProgressChanged += BackgroundWorker1_ProgressChanged;
+            backgroundWorker2.RunWorkerCompleted += BackgroundWorker2_RunWorkerCompleted;
+            backgroundWorker2.ProgressChanged += BackgroundWorker2_ProgressChanged;
         }
 
         private void LoadBitmap(string bitmapSrc)
@@ -70,11 +76,32 @@ namespace Octree_reduction
         private void reduceButton_Click(object sender, EventArgs e)
         {
             reduceAfterProgressBar.Value = 0;
-            reduceAfterProgressBar.Maximum = originalSizeBitmap.Bits.Length;
             reduceAlongProgressBar.Value = 0;
-            reduceAlongProgressBar.Maximum = originalSizeBitmap.Bits.Length;
-           
+
             backgroundWorker1.RunWorkerAsync(colorNumberTrackBar.Value);
+            backgroundWorker2.RunWorkerAsync(colorNumberTrackBar.Value);
+        }
+
+        private void BackgroundWorker1_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+                reduceAfterProgressBar.Value = e.ProgressPercentage;
+                reduceAfterProgressBar.Refresh();
+        }
+
+        private void BackgroundWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            DrawToPictureBoxes();
+        }
+
+        private void BackgroundWorker2_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+                reduceAlongProgressBar.Value = e.ProgressPercentage;
+                reduceAlongProgressBar.Refresh();
+        }
+
+        private void BackgroundWorker2_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            DrawToPictureBoxes();
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -105,71 +132,60 @@ namespace Octree_reduction
         private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
         {
             ReduceAfter((int)e.Argument);
-            ReduceAlong((int)e.Argument);
 
+        }
+
+        private void backgroundWorker2_DoWork(object sender, DoWorkEventArgs e)
+        {
+            ReduceAlong((int)e.Argument);
         }
         private void ReduceAfter(int resultingLeavesCount)
         {
             var tree = new Octree();
-            var progressReport = new ProgressReporter(reduceAfterProgressBar);
-            progressReport.StartReporting();
+            var progressReport = new ProgressReporter(backgroundWorker1,
+                originalSizeBitmap.Width * originalSizeBitmap.Height);
             tree.LoadBitmap(originalSizeBitmap, progressReport);
             tree.Reduce(resultingLeavesCount);
             originalSizeBitmapReducedAfter.DrawOther(originalSizeBitmap);
             tree.UpdateBitmap(originalSizeBitmapReducedAfter);
             progressReport.StopReporting();
-            this.Invoke((Action)delegate { DrawToPictureBoxes(); });
         }
         private void ReduceAlong(int resultingLeavesCount)
         {
             var tree = new Octree();
-            var progressReport = new ProgressReporter(reduceAlongProgressBar);
-            progressReport.StartReporting();
+            var progressReport = new ProgressReporter(backgroundWorker2,
+                originalSizeBitmap.Width*originalSizeBitmap.Height);
             tree.LoadBitmapReduceAlong(originalSizeBitmap, progressReport, resultingLeavesCount);
             originalSizeBitmapReducedAlong.DrawOther(originalSizeBitmap);
             tree.UpdateBitmap(originalSizeBitmapReducedAlong);
             progressReport.StopReporting();
-            this.Invoke((Action)delegate { DrawToPictureBoxes(); });
         }
-
     }
 }
 class ProgressReporter : Progress<int>
 {
-    CancellationTokenSource tokenSource = new CancellationTokenSource();
     int k = 0;
-    ProgressBar progressBar;
-    Task reportingTask;
-    public ProgressReporter(ProgressBar progressBar)
+    BackgroundWorker backgroundWorker;
+    int size;
+    int prevPercentReport = 0;
+    public ProgressReporter(BackgroundWorker backgroundWorker, int size)
     {
-        this.progressBar = progressBar;
+        this.backgroundWorker = backgroundWorker;
+        this.size = size;
     }
     protected override void OnReport(int value)
     {
         base.OnReport(value);
-        Interlocked.Increment(ref k);
-    }
-    public void StartReporting()
-    {
-        CancellationToken ct = tokenSource.Token;
-        reportingTask = new Task(UpdateBar, tokenSource.Token);
-        reportingTask.Start();
+        k++;
+        int percent = k * 100 / size;
+        if(percent > prevPercentReport + 5)
+        {
+            backgroundWorker.ReportProgress(percent);
+            prevPercentReport = percent;
+        }
     }
     public void StopReporting()
     {
-        tokenSource.Cancel();
-        progressBar.Value = progressBar.Maximum;
-    }
-    private void UpdateBar()
-    {
-        while (!tokenSource.Token.IsCancellationRequested)
-        {
-            progressBar.Invoke((Action)delegate
-            {
-                progressBar.Value = k;
-            });
-            if (tokenSource.Token.IsCancellationRequested) break;
-            Thread.Sleep(50);
-        }
+        backgroundWorker.ReportProgress(100);
     }
 };
